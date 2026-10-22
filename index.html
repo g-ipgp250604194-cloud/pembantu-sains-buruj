@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pembantu Sains Buruj</title>
+<style>
+  :root { --bg:#071426; --panel:#10243e; --panel2:#142d4b; --text:#f3f7ff; --muted:#b9c9df; --accent:#79d6ff; --accent2:#b49aff; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; font-family:Arial, Helvetica, sans-serif; color:var(--text); background:radial-gradient(circle at 15% 10%, #193c66 0, transparent 32%), radial-gradient(circle at 85% 15%, #39275f 0, transparent 28%), var(--bg); display:flex; align-items:center; justify-content:center; padding:20px; }
+  .app { width:min(900px,100%); height:min(780px, calc(100vh - 40px)); min-height:600px; display:flex; flex-direction:column; border:1px solid #294768; border-radius:22px; overflow:hidden; background:rgba(9,25,45,.94); box-shadow:0 24px 70px #0008; }
+  header { padding:22px 24px; background:linear-gradient(120deg,#15395b,#302553); border-bottom:1px solid #294768; display:flex; gap:15px; align-items:center; }
+  .logo { width:54px; height:54px; flex:none; border-radius:17px; display:grid; place-items:center; font-size:29px; background:#ffffff16; border:1px solid #ffffff2b; }
+  h1 { margin:0 0 5px; font-size:clamp(19px,3vw,26px); }
+  header p { margin:0; color:var(--muted); font-size:14px; line-height:1.4; }
+  .status { margin-left:auto; white-space:nowrap; font-size:12px; color:#b9f5d0; background:#1d69454a; border:1px solid #3c9d6c66; padding:7px 10px; border-radius:999px; }
+  .quick { display:flex; gap:8px; flex-wrap:wrap; padding:13px 18px; border-bottom:1px solid #223a55; background:#0c1d33; }
+  .quick button { border:1px solid #355779; color:#dceeff; background:#142c48; border-radius:999px; padding:8px 12px; cursor:pointer; font-size:13px; }
+  .quick button:hover { background:#204569; }
+  #chat { flex:1; overflow-y:auto; padding:22px; display:flex; flex-direction:column; gap:16px; scroll-behavior:smooth; }
+  .row { display:flex; gap:10px; align-items:flex-start; max-width:88%; }
+  .row.user { align-self:flex-end; flex-direction:row-reverse; }
+  .avatar { width:34px; height:34px; border-radius:12px; flex:none; display:grid; place-items:center; background:#23486b; }
+  .user .avatar { background:#51417d; }
+  .bubble { padding:13px 15px; border:1px solid #294764; background:#122a45; border-radius:4px 16px 16px 16px; line-height:1.55; font-size:14.5px; overflow-wrap:anywhere; }
+  .user .bubble { background:#443769; border-color:#64548f; border-radius:16px 4px 16px 16px; }
+  .bubble strong { color:#a8e5ff; }
+  .bubble ul { margin:8px 0 2px; padding-left:20px; }
+  .bubble li { margin:4px 0; }
+  .composer { padding:16px; display:flex; gap:10px; background:#0b1b30; border-top:1px solid #223a55; }
+  #message { min-width:0; flex:1; border:1px solid #355779; border-radius:14px; padding:14px 15px; font-size:15px; color:var(--text); background:#10243d; outline:none; }
+  #message:focus { border-color:var(--accent); box-shadow:0 0 0 3px #79d6ff1c; }
+  #send { border:0; border-radius:14px; padding:0 20px; color:#071426; background:linear-gradient(120deg,var(--accent),#b8c5ff); font-weight:bold; cursor:pointer; }
+  #send:hover { filter:brightness(1.08); }
+  .hint { text-align:center; color:#8fa8c4; font-size:11px; padding:0 12px 12px; background:#0b1b30; }
+  @media(max-width:600px) { body{padding:0} .app{height:100vh;min-height:0;border-radius:0} header{padding:17px} .status{display:none} #chat{padding:16px} .row{max-width:96%} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">🌌</div>
+    <div>
+      <h1>Pembantu Sains Buruj</h1>
+      <p>Kenali buruj, bintang dan langit malam dengan cara yang mudah.</p>
+    </div>
+    <div class="status">● Dalam talian</div>
+  </header>
+  <nav class="quick" aria-label="Soalan pantas">
+    <button data-q="Apakah itu buruj?">Apa itu buruj?</button>
+    <button data-q="Berikan contoh buruj">Contoh buruj</button>
+    <button data-q="Bagaimana buruj membantu manusia?">Kegunaan buruj</button>
+    <button data-q="Bagaimana saya boleh melihat buruj?">Cara melihat buruj</button>
+  </nav>
+  <main id="chat" aria-live="polite">
+    <div class="row bot">
+      <div class="avatar">🤖</div>
+      <div class="bubble">Hai! Saya <strong>Pembantu Sains Buruj</strong>. 🌟<br><br>Saya boleh membantu anda memahami buruj dan astronomi asas. Cuba tanya saya tentang maksud buruj, contoh buruj, atau cara memerhatikannya di langit malam.</div>
+    </div>
+  </main>
+  <form class="composer" id="form">
+    <input id="message" type="text" placeholder="Taip soalan anda di sini..." autocomplete="off" aria-label="Taip soalan anda" required>
+    <button id="send" type="submit">Hantar ➤</button>
+  </form>
+  <div class="hint">Chatbot demonstrasi ini menggunakan jawapan berasaskan kata kunci dan boleh digunakan tanpa API.</div>
+</div>
+<script>
+const chat = document.getElementById('chat');
+const form = document.getElementById('form');
+const input = document.getElementById('message');
+
+function addMessage(text, who) {
+  const row = document.createElement('div');
+  row.className = 'row ' + who;
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = who === 'user' ? '🙂' : '🤖';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = text;
+  row.append(avatar, bubble);
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function answer(question) {
+  const q = question.toLowerCase();
+  if (/(hai|hello|helo|salam|selamat pagi|selamat petang)/.test(q)) {
+    return 'Hai! 👋 Selamat datang. Apakah yang anda ingin tahu tentang sains buruj hari ini?';
+  }
+  if (/(apa itu buruj|maksud buruj|definisi buruj|buruj ialah|apakah buruj)/.test(q)) {
+    return 'Buruj ialah sekumpulan bintang yang kelihatan membentuk corak tertentu apabila dilihat dari Bumi. Corak ini membantu manusia mengenali kawasan di langit. Walau bagaimanapun, bintang dalam sesuatu buruj biasanya berada pada jarak yang berbeza-beza dan tidak semestinya berdekatan antara satu sama lain di angkasa.';
+  }
+  if (/(contoh|jenis|nama buruj|buruj apa|senaraikan)/.test(q)) {
+    return 'Antara contoh buruj yang terkenal ialah:<ul><li><strong>Orion</strong> — mudah dikenali melalui tiga bintang yang membentuk tali pinggang Orion.</li><li><strong>Ursa Major</strong> — mengandungi corak bintang yang dikenali sebagai Big Dipper.</li><li><strong>Scorpius</strong> — sering digambarkan menyerupai kala jengking.</li><li><strong>Crux</strong> — dikenali sebagai Southern Cross atau Pari.</li></ul>Kebolehlihatan setiap buruj bergantung pada lokasi dan masa pemerhatian.';
+  }
+  if (/(orion|tali pinggang)/.test(q)) {
+    return '<strong>Orion</strong> ialah buruj yang terkenal kerana tiga bintang yang tersusun hampir dalam satu garis, dikenali sebagai Tali Pinggang Orion. Orion lebih mudah dilihat pada musim tertentu, bergantung pada lokasi pemerhati.';
+  }
+  if (/(ursa major|big dipper|biduk)/.test(q)) {
+    return '<strong>Ursa Major</strong> ialah buruj di langit utara. Sebahagian bintangnya membentuk corak yang dikenali sebagai Big Dipper. Corak ini sering digunakan untuk membantu mencari Polaris, tetapi kaedah ini paling sesuai bagi pemerhati di Hemisfera Utara.';
+  }
+  if (/(scorpius|scorpio|kala jengking)/.test(q)) {
+    return '<strong>Scorpius</strong> ialah buruj yang bentuknya sering dikaitkan dengan kala jengking. Antares ialah salah satu bintang paling terang dalam buruj ini. Waktu ia kelihatan bergantung pada musim dan lokasi.';
+  }
+  if (/(crux|southern cross|pari)/.test(q)) {
+    return '<strong>Crux</strong>, yang juga dikenali sebagai Southern Cross atau Pari, ialah buruj kecil di langit selatan. Ia lebih sesuai diperhatikan dari Hemisfera Selatan dan kawasan tropika tertentu, termasuk sebahagian kawasan di Malaysia.';
+  }
+  if (/(kegunaan|kepentingan|membantu manusia|arah|navigasi)/.test(q)) {
+    return 'Buruj telah membantu manusia mengenali corak langit, menganggar perubahan musim dan menentukan arah ketika mengembara atau belayar. Pada masa kini, buruj juga membantu ahli astronomi membahagikan dan menandakan kawasan di langit. Untuk navigasi moden, buruj bukan pengganti alat navigasi yang tepat.';
+  }
+  if (/(lihat|melihat|memerhati|pemerhatian|cara.*buruj|langit malam|teleskop)/.test(q)) {
+    return 'Untuk memerhati buruj:<ul><li>Pilih malam yang cerah dan cari tempat yang kurang pencemaran cahaya.</li><li>Berikan masa kepada mata untuk menyesuaikan diri dengan kegelapan.</li><li>Mulakan dengan mata kasar; teleskop tidak diperlukan untuk melihat corak buruj yang besar.</li><li>Gunakan peta langit atau aplikasi astronomi untuk mengenal pasti arah dan buruj.</li><li>Semak tarikh, masa dan lokasi kerana buruj yang kelihatan berubah mengikut kedudukan pemerhati.</li></ul>';
+  }
+  if (/(bintang|planet|beza.*buruj|buruj.*bintang)/.test(q)) {
+    return 'Bintang ialah objek angkasa yang menghasilkan cahaya sendiri, manakala buruj ialah corak atau kawasan di langit yang ditakrifkan berdasarkan kedudukan bintang-bintang. Planet pula tidak menghasilkan cahaya sendiri seperti bintang; planet kelihatan kerana memantulkan cahaya Matahari. Planet boleh kelihatan berhampiran buruj tetapi bukan sebahagian daripada corak bintang itu.';
+  }
+  if (/(sabah|malaysia|lokasi|waktu|masa|hari ini|malam ini)/.test(q)) {
+    return 'Buruj yang boleh dilihat bergantung pada lokasi, tarikh, waktu dan keadaan cuaca. Di Sabah dan kawasan tropika, beberapa buruj dari langit utara dan selatan boleh kelihatan pada masa yang berbeza sepanjang tahun. Untuk jawapan yang lebih tepat, nyatakan lokasi, tarikh dan anggaran waktu pemerhatian.';
+  }
+  if (/(terima kasih|thanks|tq)/.test(q)) {
+    return 'Sama-sama! ✨ Teruskan bertanya jika anda ingin mengetahui lebih lanjut tentang buruj dan alam semesta.';
+  }
+  return 'Maaf, saya belum dapat memahami soalan itu dengan tepat. Boleh tanya dengan cara lain atau pilih salah satu topik ini: <ul><li>Maksud buruj</li><li>Contoh buruj seperti Orion, Ursa Major atau Scorpius</li><li>Kegunaan buruj</li><li>Cara memerhati buruj di langit malam</li></ul>Jika soalan anda berkaitan buruj yang kelihatan di lokasi tertentu, nyatakan lokasi, tarikh dan masa pemerhatian.';
+}
+
+form.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const value = input.value.trim();
+  if (!value) return;
+  addMessage(escapeHtml(value), 'user');
+  input.value = '';
+  setTimeout(() => addMessage(answer(value), 'bot'), 250);
+});
+document.querySelectorAll('.quick button').forEach(button => {
+  button.addEventListener('click', () => {
+    const value = button.dataset.q;
+    addMessage(escapeHtml(value), 'user');
+    setTimeout(() => addMessage(answer(value), 'bot'), 250);
+  });
+});
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+</script>
+</body>
+</html>
